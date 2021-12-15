@@ -18,7 +18,7 @@ class Shell {
 
             // Evaluating the snippet
             if (this.snippet.equals("exit")) break;
-            // If snippet isn't empty, then we evaluate it
+                // If snippet isn't empty, then we evaluate it
             else if (!(this.snippet.replace(" ", "").equals(""))) eval_snippet();
         }
         scan.close();
@@ -28,6 +28,7 @@ class Shell {
         lex_tokens();
         System.out.println(this.tokens);
     }
+    // Creates basic tokens with no type out of the line of code
     private void tokenize() {
 
         boolean split = true;   // Whether string is split by spaces and symbols
@@ -89,7 +90,7 @@ class Shell {
         for (Token tok : tokens) {
             // Sets Token type to string if fist and last char are '"' or "'"
             if (tok.name.charAt(0) == '"' && tok.name.charAt(tok.name.length() - 1) == '"' ||
-                tok.name.charAt(0) == '\'' && tok.name.charAt(tok.name.length() - 1) == '\'') tok.type = "string";
+                    tok.name.charAt(0) == '\'' && tok.name.charAt(tok.name.length() - 1) == '\'') tok.type = "string";
             else {
                 switch (tok.name) {
                     case "print":
@@ -145,6 +146,7 @@ class Shell {
         lex_float(tokens);
         lex_logicals();
     }
+    // Used to lex tokens that are intended to be floats
     private void lex_float(ArrayList<Token> tokens) {
         ArrayList<Token> fully_lexed = new ArrayList<>(); int skip = 0;
         for (int i = 0; i < tokens.size(); i++) {
@@ -173,6 +175,7 @@ class Shell {
         }
         this.tokens = fully_lexed;
     }
+    // Used to lex tokens that are meant to be compounded logicals '<=' '>=' '==' '||' '&&'
     private void lex_logicals() {
         ArrayList<Token> tokens = this.tokens;
         ArrayList<Token> final_tokens = new ArrayList<>();
@@ -220,6 +223,10 @@ class Shell {
             }
         }
         this.tokens = final_tokens;
+    }
+    // Starts the process of parsing a single selection of tokens. Those are
+    private void parse_tokens() {
+
     }
     static class Token {
         public String name;
