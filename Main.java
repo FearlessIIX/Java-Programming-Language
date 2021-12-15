@@ -106,11 +106,12 @@ class Shell {
                     case "-":
                     case "*":
                     case "%":
-                    case "|":
-                    case "<":
-                    case ">":
                     case "~":
                         tok.type = "operator";
+                        break;
+                    case ">":
+                    case "<":
+                        tok.type = "logical";
                         break;
                     case ",":
                     case ";":
@@ -141,6 +142,10 @@ class Shell {
             }
         }
         // Lexing pre-lexed tokens for previously undetectable token types
+        lex_float(tokens);
+        lex_logicals();
+    }
+    private void lex_float(ArrayList<Token> tokens) {
         ArrayList<Token> fully_lexed = new ArrayList<>(); int skip = 0;
         for (int i = 0; i < tokens.size(); i++) {
             if (!(skip == 0)) {     // Needed to skip re-tokenizing the three tokens that were made into a float
@@ -154,9 +159,9 @@ class Shell {
                     // If token two after current is integer
                     if (tokens.get(i + 2).type.equals("integer")) {
                         fully_lexed.add(new Token(
-                            // Appends the three tokens from current to 2+ current as one token
-                            tokens.get(i).name + tokens.get(i + 1).name + tokens.get(i + 2).name,
-                            "float" // With the type 'float'
+                                // Appends the three tokens from current to 2+ current as one token
+                                tokens.get(i).name + tokens.get(i + 1).name + tokens.get(i + 2).name,
+                                "float" // With the type 'float'
                         ));
                         skip = 2;
                         continue;
@@ -168,12 +173,60 @@ class Shell {
         }
         this.tokens = fully_lexed;
     }
+    private void lex_logicals() {
+        ArrayList<Token> tokens = this.tokens;
+        ArrayList<Token> final_tokens = new ArrayList<>();
+        boolean skip = false;
+        for (int index = 0; index < tokens.size(); index++) {
+            if (skip) {
+                skip = false;
+                continue;
+            }
+            switch (tokens.get(index).name) {
+                case "|":
+                case "&":
+                case "=":
+                    // Checks if there is a token after the current token
+                    // Then checks if the next token has the same name as the current token
+                    if (index + 1 < tokens.size() && tokens.get(index + 1).name.equals(tokens.get(index).name)) {
+                        final_tokens.add(new Token(tokens.get(index).name + tokens.get(index + 1).name));
+                        skip = true;
+                        continue;
+                    }
+                    break;
+                case "<":
+                case ">":
+                    // Checks if there is another token after the current token
+                    // Then checks if the next token has a name of '='
+                    if (index + 1 < tokens.size() && tokens.get(index + 1).name.equals("=")) {
+                        final_tokens.add(new Token(tokens.get(index).name + tokens.get(index + 1).name));
+                        skip = true;
+                        continue;
+                    }
+                    break;
+            }
+            final_tokens.add(new Token(tokens.get(index).name, tokens.get(index).type));
+        }
+        // Applying types to the newly created tokens
+        for (Token token : final_tokens) {
+            switch (token.name) {
+                case "==":
+                case ">=":
+                case "<=":
+                case "&&":
+                case "||":
+                    token.type = "logical";
+                    break;
+            }
+        }
+        this.tokens = final_tokens;
+    }
     static class Token {
         public String name;
         public String type = "None";
         public Token(String name) {this.name = name;}
         public Token(String name, String type) {this.name = name;this.type = type;}
-        
+
         // TODO:toString is only used for development purposes, nothing should depend on it
         public String toString() {return this.name + " " + this.type;}
     }
