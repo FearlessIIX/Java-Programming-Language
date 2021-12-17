@@ -121,6 +121,7 @@ class Shell {
                     case "-":
                     case "*":
                     case "%":
+                    case "/":    
                     case "~":
                         tok.type = "operator";
                         break;
