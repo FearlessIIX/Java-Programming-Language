@@ -12,8 +12,9 @@ class Shell {
     private ArrayList<Token> tokens = new ArrayList<>();
     // A list of the tokens after normalization + paren verification/matching
     private final ArrayList<Token> prepared_tokens = new ArrayList<>();
-    // The Runtime for the shell that handles the language side
+    // The Runtime for the Shell that handles the language side
     private final Runtime runtime = new Runtime();
+    // Contains the code Shell-loop and initialization
     public Shell() {
         Scanner scan = new Scanner(System.in);
         while (true) {
@@ -28,6 +29,7 @@ class Shell {
         }
         scan.close();
     }
+    // A driver for snippet tokenization and also early driver for code parsing
     private void eval_snippet() {
         tokenize();
         lex_tokens();
@@ -39,6 +41,7 @@ class Shell {
         this.runtime.parse_tokens(this.prepared_tokens);
         this.prepared_tokens.clear();
     }
+    // Fully tokenizes the snippet passed by the Shell
     private void tokenize() {
 
         boolean split = true;   // Whether string is split by spaces and symbols
@@ -94,6 +97,7 @@ class Shell {
         }
         this.tokens = tokens;
     }
+    // Partially lexes all Tokens that aren't combinations of standalone or single symbol Tokens
     private void lex_tokens() {
         ArrayList<Token> tokens = this.tokens;
 
@@ -159,6 +163,7 @@ class Shell {
         lex_float(tokens);
         lex_logical();
     }
+    // Lexes all Tokens that are deemed to be floats
     private void lex_float(ArrayList<Token> tokens) {
         ArrayList<Token> fully_lexed = new ArrayList<>(); int skip = 0;
         for (int i = 0; i < tokens.size(); i++) {
@@ -187,6 +192,7 @@ class Shell {
         }
         this.tokens = fully_lexed;
     }
+    // Lexes all other Tokens that can be described as two symbols (Which happens to be a lot of logical Tokens)
     private void lex_logical() {
         ArrayList<Token> tokens = this.tokens;
         ArrayList<Token> final_tokens = new ArrayList<>();
@@ -240,6 +246,7 @@ class Shell {
         this.tokens = final_tokens;
     }
     // TODO: I don't fully trust this code just yet. Seems to be just a little laggy sometimes
+    // Verifies that all parens '(, [, {' have been correctly closed and not over-closed
     private boolean verify_parens() {
         // All the block based Tokens that need to match for a valid statement
         String[][] pairs = {{"{","}"},{"[","]"},{"(",")"}};
