@@ -6,9 +6,14 @@ public class Main {
     }
 }
 class Shell {
-    private String snippet;     // The current code-snippet grabbed from the Shell interface
+    // The current code-snippet grabbed from the Shell interface
+    private String snippet;
     // A list of the tokens created from the current snippet
     private ArrayList<Token> tokens = new ArrayList<>();
+    // A list of the tokens after normalization + paren verification/matching
+    private final ArrayList<Token> prepared_tokens = new ArrayList<>();
+    // The Runtime for the shell that handles the language side
+    private final Runtime runtime = new Runtime();
     public Shell() {
         Scanner scan = new Scanner(System.in);
         while (true) {
@@ -18,7 +23,7 @@ class Shell {
 
             // Evaluating the snippet
             if (this.snippet.equals("exit")) break;
-                // If snippet isn't empty, then we evaluate it
+            // If snippet isn't empty, then we evaluate it
             else if (!(this.snippet.replace(" ", "").equals(""))) eval_snippet();
         }
         scan.close();
@@ -26,9 +31,14 @@ class Shell {
     private void eval_snippet() {
         tokenize();
         lex_tokens();
-        System.out.println(this.tokens);
+        // Prepared_tokens is saved and appended to until the statement is complete (think of code-blocks)
+        this.prepared_tokens.addAll(this.tokens);
+
+        if (!(verify_parens())) return;
+        // Executing the commands based off of the statement tokens
+        this.runtime.parse_tokens(this.prepared_tokens);
+        this.prepared_tokens.clear();
     }
-    // Creates basic tokens with no type out of the line of code
     private void tokenize() {
 
         boolean split = true;   // Whether string is split by spaces and symbols
@@ -90,7 +100,7 @@ class Shell {
         for (Token tok : tokens) {
             // Sets Token type to string if fist and last char are '"' or "'"
             if (tok.name.charAt(0) == '"' && tok.name.charAt(tok.name.length() - 1) == '"' ||
-                    tok.name.charAt(0) == '\'' && tok.name.charAt(tok.name.length() - 1) == '\'') tok.type = "string";
+                tok.name.charAt(0) == '\'' && tok.name.charAt(tok.name.length() - 1) == '\'') tok.type = "string";
             else {
                 switch (tok.name) {
                     case "print":
@@ -109,6 +119,9 @@ class Shell {
                     case "%":
                     case "~":
                         tok.type = "operator";
+                        break;
+                    case "#":
+                        tok.type = "comment";
                         break;
                     case ">":
                     case "<":
@@ -144,9 +157,8 @@ class Shell {
         }
         // Lexing pre-lexed tokens for previously undetectable token types
         lex_float(tokens);
-        lex_logicals();
+        lex_logical();
     }
-    // Used to lex tokens that are intended to be floats
     private void lex_float(ArrayList<Token> tokens) {
         ArrayList<Token> fully_lexed = new ArrayList<>(); int skip = 0;
         for (int i = 0; i < tokens.size(); i++) {
@@ -175,8 +187,7 @@ class Shell {
         }
         this.tokens = fully_lexed;
     }
-    // Used to lex tokens that are meant to be compounded logicals '<=' '>=' '==' '||' '&&'
-    private void lex_logicals() {
+    private void lex_logical() {
         ArrayList<Token> tokens = this.tokens;
         ArrayList<Token> final_tokens = new ArrayList<>();
         boolean skip = false;
@@ -189,6 +200,7 @@ class Shell {
                 case "|":
                 case "&":
                 case "=":
+                case "+":
                     // Checks if there is a token after the current token
                     // Then checks if the next token has the same name as the current token
                     if (index + 1 < tokens.size() && tokens.get(index + 1).name.equals(tokens.get(index).name)) {
@@ -220,21 +232,31 @@ class Shell {
                 case "||":
                     token.type = "logical";
                     break;
+                case "++":
+                    token.type = "operator";
+                    break;
             }
         }
         this.tokens = final_tokens;
     }
-    // Starts the process of parsing a single selection of tokens. Those are
-    private void parse_tokens() {
-
-    }
-    static class Token {
-        public String name;
-        public String type = "None";
-        public Token(String name) {this.name = name;}
-        public Token(String name, String type) {this.name = name;this.type = type;}
-
-        // TODO:toString is only used for development purposes, nothing should depend on it
-        public String toString() {return this.name + " " + this.type;}
+    // TODO: I don't fully trust this code just yet. Seems to be just a little laggy sometimes
+    private boolean verify_parens() {
+        // All the block based Tokens that need to match for a valid statement
+        String[][] pairs = {{"{","}"},{"[","]"},{"(",")"}};
+        // Runs the loop over the Tokens for each pair of parens
+        for (String[] pair : pairs) {
+            int paren_depth = 0;    // Amount of opened parens
+            for (Token token : this.prepared_tokens) {
+                // Guard clause against non-pair tokens
+                if (!(token.name.equals(pair[0]) || token.name.equals(pair[1]))) continue;
+                // Running appropriate paren_depth operations for each type of paren
+                if (token.type.equals("opening paren")) paren_depth++;
+                else paren_depth--;
+                if (paren_depth < 0) return false;  // Returns if at any point more parens are closed then opened
+            }
+            // Returns if there are unclosed parens left
+            if (!(paren_depth == 0)) return false;
+        }
+        return true;
     }
 }
